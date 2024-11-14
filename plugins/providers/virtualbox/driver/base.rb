@@ -1,13 +1,13 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-require 'log4r'
+Vagrant.require 'log4r'
 
-require 'vagrant/util/busy'
-require 'vagrant/util/platform'
-require 'vagrant/util/retryable'
-require 'vagrant/util/subprocess'
-require 'vagrant/util/which'
+Vagrant.require 'vagrant/util/busy'
+Vagrant.require 'vagrant/util/platform'
+Vagrant.require 'vagrant/util/retryable'
+Vagrant.require 'vagrant/util/subprocess'
+Vagrant.require 'vagrant/util/which'
 
 module VagrantPlugins
   module ProviderVirtualBox
@@ -442,8 +442,8 @@ module VagrantPlugins
             if errored
               raise Vagrant::Errors::VBoxManageError,
                 command: command.inspect,
-                stderr:  r.stderr,
-                stdout:  r.stdout
+                stderr:  r.stderr.to_s.force_encoding("UTF-8"),
+                stdout:  r.stdout.to_s.force_encoding("UTF-8")
             end
           end
 

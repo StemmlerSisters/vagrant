@@ -1,8 +1,8 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-require "shellwords"
-require "vagrant/util/retryable"
+Vagrant.require "shellwords"
+Vagrant.require "vagrant/util/retryable"
 
 module VagrantPlugins
   module SyncedFolder
@@ -97,7 +97,7 @@ module VagrantPlugins
       def emit_upstart_notification(machine, guest_path)
         # Emit an upstart event if we can
         machine.communicate.sudo <<-EOH.gsub(/^ {12}/, "")
-            if command -v /sbin/init && /sbin/init 2>/dev/null --version | grep upstart; then
+            if test -x /sbin/initctl && command -v /sbin/init && /sbin/init 2>/dev/null --version | grep upstart; then
               /sbin/initctl emit --no-wait vagrant-mounted MOUNTPOINT=#{guest_path}
             fi
           EOH

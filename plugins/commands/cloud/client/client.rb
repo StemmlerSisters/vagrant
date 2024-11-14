@@ -1,9 +1,10 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-require "vagrant_cloud"
-require "vagrant/util/downloader"
-require "vagrant/util/presence"
+Vagrant.require "vagrant_cloud"
+Vagrant.require "vagrant/util/downloader"
+Vagrant.require "vagrant/util/presence"
+
 require Vagrant.source_root.join("plugins/commands/cloud/errors")
 
 module VagrantPlugins
@@ -36,10 +37,13 @@ module VagrantPlugins
       def initialize(env)
         @logger = Log4r::Logger.new("vagrant::cloud::client")
         @env    = env
-        @client = VagrantCloud::Client.new(
-          access_token: token,
-          url_base: api_server_url
-        )
+        if !defined?(@@client)
+          @@client = VagrantCloud::Client.new(
+            access_token: token,
+            url_base: api_server_url
+          )
+        end
+        @client = @@client
       end
 
       # Removes the token, effectively logging the user out.
@@ -53,7 +57,8 @@ module VagrantPlugins
       #
       # @return [Boolean]
       def logged_in?
-        return false if !client.access_token
+        return false if !client&.access_token
+
         Vagrant::Util::CredentialScrubber.sensitive(client.access_token)
 
         with_error_handling do
@@ -127,6 +132,10 @@ module VagrantPlugins
       #
       # @return [String]
       def token
+        # If the client is defined, use the client for the access token
+        # to allow proper token generation if required
+        return client.access_token if client && !client.access_token.nil?
+
         if present?(ENV["VAGRANT_CLOUD_TOKEN"]) && token_path.exist?
           # Only show warning if it has not been previously shown
           if !defined?(@@double_token_warning)

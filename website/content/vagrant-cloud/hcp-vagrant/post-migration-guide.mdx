@@ -26,10 +26,10 @@ The format of the composite access token is:
 <VAGRANT_CLOUD_TOKEN>;<HCP_TOKEN>
 ```
 
-If all organizations have been migrated to HCP Vagrant Registry the Vagrant Cloud access token will not be needed. The format of the access token is:
+If all organizations have been migrated to HCP Vagrant Registry the Vagrant Cloud access token will not be needed. The format of the access token is simply the access token:
 
 ```
-;<HCP_TOKEN>
+<HCP_TOKEN>
 ```
 
 ### HCP Access Token
@@ -65,8 +65,23 @@ The `hcp` command can also be used to provide the HCP access token to reduce the
 export VAGRANT_CLOUD_TOKEN="<VAGRANT_CLOUD_TOKEN>;$(hcp auth print-access-token)"
 ```
 
-If all organizations have been migrated to HCP Vagrant Registry, only the HCP access token will be needed:
+If all organizations have been migrated to HCP Vagrant Registry, only authentication with HCP will be required. This can be done by providing the HCP access token in the `VAGRANT_CLOUD_TOKEN` environment variable:
 
 ```
-export VAGRANT_CLOUD_TOKEN=";$(hcp auth print-access-token)"
+export VAGRANT_CLOUD_TOKEN="$(hcp auth print-access-token)"
 ```
+
+Or, if using Vagrant v2.4.3 or later, by setting the `HCP_CLIENT_ID` and `HCP_CLIENT_SECRET` environment variables:
+
+```
+export HCP_CLIENT_ID="<CLIENT_ID>"`
+export HCP_CLIENT_SECRET="<CLIENT_SECRET>"`
+```
+
+If these variables are set, and the `VAGRANT_CLOUD_TOKEN` environment variable is unset, access tokens will be generated as needed when performing requests.
+
+# Packer
+
+After migrating to HCP, box uploads may fail when using the [vagrant-cloud](/packer/integrations/hashicorp/vagrant/latest/components/post-processor/vagrant-cloud) post-processor. This is due to the HCP access token used in the composite token expiring prior to the post-processor being executed.
+
+To resolve this issue, a new Packer post-processor has been introduced: [vagrant-registry](/packer/integrations/hashicorp/vagrant/latest/components/post-processor/vagrant-registry). This post-processor iteracts directly with the HCP Vagrant Box Registry and removes the requirement of a composite access token. The configuration of the `vagrant-registry` post-processor matches the configuration of the `vagrant-cloud` post-processor with the exception of the [authentication settings](/packer/integrations/hashicorp/vagrant/latest/components/post-processor/vagrant-registry#required) which requires a `client_id` and `client_secret` value instead of the `access_token` used by the `vagrant-cloud` post-processor.

@@ -1,8 +1,8 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-require "json"
-require "log4r"
+Vagrant.require "json"
+Vagrant.require "log4r"
 
 require_relative "./driver/compose"
 
@@ -32,11 +32,15 @@ module VagrantPlugins
         # from standard docker
         matches = result.scan(/writing image .+:([^\s]+)/i).last
         if !matches
+          # Check for outout of docker using containerd backend store
+          matches = result.scan(/exporting manifest list .+:([^\s]+)/i).last
+        end
+        if !matches
           if podman?
             # Check for podman format when it is emulating docker CLI.
             # Podman outputs the full hash of the container on
             # the last line after a successful build.
-            match = result.split.select { |str| str.match?(/[0-9a-z]{64}/) }.last
+            match = result.split.select { |str| str.match?(/^[0-9a-z]{64}/) }.last
             return match[0..7] unless match.nil?
           else
             matches = result.scan(/Successfully built (.+)$/i).last
@@ -125,8 +129,8 @@ module VagrantPlugins
       end
 
       def image?(id)
-        result = execute('docker', 'images', '-q').to_s
-        result =~ /^#{Regexp.escape(id)}$/
+        result = execute('docker', 'images', '-q', '--no-trunc').to_s
+        result =~ /\b#{Regexp.escape(id)}\b/
       end
 
       # Reads all current docker containers and determines what ports
@@ -348,9 +352,9 @@ module VagrantPlugins
 
         network_info = inspect_network(all_networks)
         network_info.each do |network|
-          config = Array(network["IPAM"]["Config"])
-          if (config.size > 0 &&
-            config.first["Subnet"] == subnet_string)
+          config = Array(network.dig("IPAM", "Config"))
+          next if config.empty? || !config.first.is_a?(Hash)
+          if (config.first["Subnet"] == subnet_string)
             @logger.debug("Found existing network #{network["Name"]} already configured with #{subnet_string}")
             return network["Name"]
           end

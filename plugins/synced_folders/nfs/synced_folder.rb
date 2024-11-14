@@ -1,13 +1,13 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-require 'fileutils'
-require 'thread'
-require 'zlib'
+Vagrant.require 'fileutils'
+Vagrant.require 'thread'
+Vagrant.require 'zlib'
 
-require "log4r"
+Vagrant.require "log4r"
 
-require "vagrant/util/platform"
+Vagrant.require "vagrant/util/platform"
 
 module VagrantPlugins
   module SyncedFolderNFS
@@ -103,6 +103,11 @@ module VagrantPlugins
         mount_folders = {}
         folders.each do |id, opts|
           mount_folders[id] = opts.dup if opts[:guestpath]
+
+          machine.ui.detail(I18n.t("vagrant.actions.vm.nfs.mounting_entry",
+            guestpath: opts[:guestpath],
+            hostpath: opts[:hostpath]
+          ))
         end
 
         # Mount them!
